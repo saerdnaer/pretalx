@@ -1,8 +1,6 @@
 import datetime as dt
 import re
 import string
-import uuid
-from contextlib import suppress
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
@@ -15,13 +13,6 @@ from i18nfield.fields import I18nCharField
 
 from pretalx.common.mixins.models import LogMixin
 from pretalx.common.urls import get_base_url
-
-INSTANCE_IDENTIFIER = None
-with suppress(Exception):
-    from pretalx.common.models.settings import GlobalSettings
-
-    INSTANCE_IDENTIFIER = GlobalSettings().get_instance_identifier()
-
 
 class TalkSlot(LogMixin, models.Model):
     """The TalkSlot object is the scheduled version of a.
@@ -172,14 +163,9 @@ class TalkSlot(LogMixin, models.Model):
 
     @cached_property
     def uuid(self):
-        """A UUID5, calculated from the submission code and the instance
-        identifier."""
-        global INSTANCE_IDENTIFIER
-        if not INSTANCE_IDENTIFIER:
-            from pretalx.common.models.settings import GlobalSettings
-
-            INSTANCE_IDENTIFIER = GlobalSettings().get_instance_identifier()
-        return uuid.uuid5(INSTANCE_IDENTIFIER, self.submission.code + self.id_suffix)
+        '''Either UUID/GUID of submission or
+        own UUID when there are multiple slots of the same submission'''
+        return self.submission.uuid(self.id_suffix)
 
     def build_ical(self, calendar, creation_time=None, netloc=None):
         if not self.start or not self.local_end or not self.room or not self.submission:
